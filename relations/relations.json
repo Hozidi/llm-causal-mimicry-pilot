@@ -1,0 +1,51 @@
+{
+  "_comment": "STAGE 0 — the ground-truth item set. The spec sheet every downstream stage reads.",
+  "_schema": {
+    "id": "unique id",
+    "subject": "the cause-candidate entity/variable",
+    "object": "the effect-candidate entity/variable",
+    "relation_text": "natural-language relation template, e.g. '{subject} causes {object}'",
+    "true_direction": "subject->object | object->subject | none (none = correlated, not causal)",
+    "is_causal": "true if a real causal edge exists; false if merely correlational (for the direction-vs-association test)",
+    "_covariates_comment": "fields below are for confounder adjustment in the mediation",
+    "concept_commonality": "rough how-common-is-this-concept score (0-1), a confounder",
+    "relation_type": "semantic category, e.g. medical / physical / social — a confounder",
+    "_note": "frequency / rep_quality / mimicry are NOT stored here — they are COMPUTED by later stages"
+  },
+  "relations": [
+    {
+      "id": "r001",
+      "subject": "smoking",
+      "object": "lung cancer",
+      "relation_text": "{subject} causes {object}",
+      "true_direction": "subject->object",
+      "is_causal": true,
+      "concept_commonality": 0.95,
+      "relation_type": "medical",
+      "_freq_band_note": "expected HIGH frequency — drilled into training; tests well-grounded mimicry"
+    },
+    {
+      "id": "r002",
+      "subject": "rooster crowing",
+      "object": "sunrise",
+      "relation_text": "{subject} is associated with {object}",
+      "true_direction": "none",
+      "is_causal": false,
+      "concept_commonality": 0.7,
+      "relation_type": "physical",
+      "_freq_band_note": "correlated but NOT causal — tests whether model wrongly asserts causation"
+    },
+    {
+      "id": "r003",
+      "subject": "<rare/abstract subject>",
+      "object": "<rare/abstract object>",
+      "relation_text": "{subject} causes {object}",
+      "true_direction": "subject->object",
+      "is_causal": true,
+      "concept_commonality": 0.1,
+      "relation_type": "abstract",
+      "_freq_band_note": "expected LOW frequency — tests where mimicry should collapse if frequency-driven"
+    }
+  ],
+  "_todo": "Build ~20-40 items spanning HIGH->LOW frequency, mixing causal and correlational, so there is spread on the independent variable AND a direction-vs-association contrast."
+}
