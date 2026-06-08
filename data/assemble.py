@@ -148,6 +148,7 @@ def assemble(
 
     fieldnames = [
         "relation_id",
+        "dag_id",
         "subject",
         "object",
         "frequency",
@@ -168,6 +169,7 @@ def assemble(
 
             row = {
                 "relation_id": relation_id,
+                "dag_id": relation.get("dag_id", "unknown"),
                 "subject": relation["subject"],
                 "object": relation["object"],
                 "frequency": get_value(frequencies, relation_id, "frequency"),

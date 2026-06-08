@@ -1,7 +1,8 @@
 {
   "_comment": "STAGE 0 — the ground-truth item set. The spec sheet every downstream stage reads.",
   "_schema": {
-    "id": "unique id",
+    "id": "unique relation id",
+    "dag_id": "graph/source id, e.g. toy, asia, sachs, alarm",
     "subject": "the cause-candidate entity/variable",
     "object": "the effect-candidate entity/variable",
     "relation_text": "natural-language relation template, e.g. '{subject} causes {object}'",
@@ -15,6 +16,7 @@
   "relations": [
     {
       "id": "r001",
+      "dag_id": "toy",
       "subject": "smoking",
       "object": "lung cancer",
       "relation_text": "{subject} causes {object}",
@@ -26,6 +28,7 @@
     },
     {
       "id": "r002",
+      "dag_id": "toy",
       "subject": "rooster crowing",
       "object": "sunrise",
       "relation_text": "{subject} is associated with {object}",
@@ -37,6 +40,7 @@
     },
     {
       "id": "r003",
+      "dag_id": "toy",
       "subject": "<rare/abstract subject>",
       "object": "<rare/abstract object>",
       "relation_text": "{subject} causes {object}",
@@ -47,5 +51,5 @@
       "_freq_band_note": "expected LOW frequency — tests where mimicry should collapse if frequency-driven"
     }
   ],
-  "_todo": "Build ~20-40 items spanning HIGH->LOW frequency, mixing causal and correlational, so there is spread on the independent variable AND a direction-vs-association contrast."
+  "_todo": "Build ~20 relations per DAG/source file, spanning HIGH->LOW frequency, mixing causal and correlational relations, so there is spread on the independent variable AND a direction-vs-association contrast."
 }

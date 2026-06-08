@@ -1,89 +1,251 @@
 """
-STAGE 4 — CAUSAL-MIMICRY SCORE  (variable ③, the OUTCOME Y) — *** THE CONTRIBUTION ***
-=====================================================================================
-THIS IS THE ONE PIECE THAT IS YOURS. There is NO off-the-shelf paper that hands
-you a "causal mimicry score." Defining it well IS the novel contribution. Do not
-go searching for a paper that scores this — it does not exist, and that absence
-is exactly why the work matters.
+STAGE 4 — CAUSAL-MIMICRY SCORE
 
-WHAT THIS DOES:
-  Turns the RAW elicited responses (elicitation/raw_responses.json) into ONE
-  number per relation: how well the model's causal-DIRECTION behaviour matches
-  the ground truth.
+Turns raw elicited A/B/C token probabilities into per-relation mimicry scores.
 
-THE NON-NEGOTIABLE RULE:
-  This score MUST be computable WITHOUT reference to variable ② (LRE quality).
-  If Y depends on rep_quality, the mediation freq->rep->mimicry is circular and
-  the whole result is meaningless. Y is scored purely from elicited BEHAVIOUR
-  vs. GROUND TRUTH. Keep it independent.
+Input:
+  elicitation/raw_responses.json
+  relations/relations.json
 
-==============================  LOCKED DEFINITION  ==============================
-ELICITATION FORMAT (confirmed from Long et al. 2024, arXiv:2405.13551; Susanti &
-Färber 2504.10936): THREE-WAY pairwise choice, context reset per query, sample k:
-    (A) {subject} causes {object}
-    (B) {object} causes {subject}
-    (C) no causal relationship  [= correlational; correlation has no direction]
-Read the (A)/(B)/(C) token probabilities. k samples -> a distribution per edge.
+Output:
+  mimicry/mimicry_scores.json
 
-TWO SUB-SCORES (kept separate — they measure different competencies):
-
-  1) DIRECTION sub-score  (on genuinely causal edges, is_causal=true)
-       observed = mean over k of P(correct direction token)
-                  [mean-LOG-prob or mean-prob; mean-log is size-invariant across
-                   multi-edge graphs — do NOT use the raw product, it collapses to 0]
-       chance   = 1/3  (three options: A, B, C)
-       -> measures: does it orient cause->effect correctly.
-
-  2) DISCRIMINATION sub-score  (across causal AND correlational edges)
-       observed = accuracy of the causal-vs-"neither" call
-                  (assert causation when is_causal=true; say C when is_causal=false)
-       chance   = 1/2  (binary: causal vs not)
-       -> measures: does it distinguish correlation from causation.
-
-ABOVE-CHANCE NORMALIZATION (makes the two sub-scores comparable on one 0-1 scale):
-       normalized = (observed - chance) / (1 - chance)
-       0 = no better than guessing,  1 = perfect,  <0 = worse than guessing.
-       Applied per sub-score with its OWN chance (0.33 for direction, 0.5 for disc.).
-
-WHY normalize: the two sub-scores have different floors (0.33 vs 0.5); raw accuracies
-aren't comparable. Normalizing to "fraction of the chance->perfect gap captured"
-puts both on the same skill scale so they can share an axis in the mediation/figure.
-
-INDEPENDENCE CHECK (non-negotiable): both sub-scores come ONLY from elicited
-behaviour (the model's stated A/B/C + probabilities) vs. ground truth. They never
-touch the LRE representation metric (variable 2). -> mediation stays non-circular.
-
-  mimicry_score(relation) = { "direction": normalized_direction_subscore,
-                              "discrimination": normalized_discrimination_subscore }
-  (report BOTH; optionally a composite, but keep the two visible — which sub-score
-   frequency predicts is itself a finding.)
-=================================================================================
-
-INPUT:  elicitation/raw_responses.json + relations/relations.json (for ground truth)
-OUTPUT: mimicry/mimicry_scores.json -> { relation_id: mimicry_score }
+Core rule:
+  This computes the outcome variable Y from elicited behaviour only.
+  It does not use frequency or representation quality.
 """
 
-# import json
+import json
+from pathlib import Path
 
-def score_mimicry(raw_responses_path, relations_path):
-    """Turn raw elicited responses into per-relation mimicry sub-scores (variable 3).
 
-    Returns {relation_id: {"direction": float, "discrimination": float}}.
-    Both normalized via (observed - chance)/(1 - chance). Independent of variable 2.
+DIRECTION_CHANCE = 1 / 3
+DISCRIMINATION_CHANCE = 1 / 2
+
+
+def load_json(path):
+    """Load a JSON file from disk."""
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_json(obj, path):
+    """Save a Python object as formatted JSON."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(obj, f, indent=2)
+
+
+def load_relations(path):
     """
-    # TODO (spec is locked above):
-    # 1. load raw_responses.json (k samples of A/B/C + token probs) + relations.json
-    # 2. DIRECTION sub-score (is_causal=true edges):
-    #       observed = mean over k samples of P(correct direction token)   # mean-log ok
-    #       norm_dir = (observed - 1/3) / (1 - 1/3)
-    # 3. DISCRIMINATION sub-score (all edges):
-    #       observed = accuracy of causal-vs-"neither" call vs is_causal
-    #       norm_disc = (observed - 1/2) / (1 - 1/2)
-    # 4. save {relation_id: {"direction": norm_dir, "discrimination": norm_disc}}
-    #    to mimicry/mimicry_scores.json
-    raise NotImplementedError("implement against the LOCKED DEFINITION above")
+    Load relations from relations.json.
+
+    Your relations file is a dictionary. The actual relation rows live under:
+      data["relations"]
+    """
+    data = load_json(path)
+
+    if not isinstance(data, dict):
+        raise TypeError("relations.json should be a dictionary.")
+
+    if "relations" not in data:
+        raise KeyError("relations.json is missing the 'relations' key.")
+
+    relations = data["relations"]
+
+    if not isinstance(relations, list):
+        raise TypeError("data['relations'] should be a list.")
+
+    return relations
+
+
+def normalize_above_chance(observed, chance):
+    """
+    Normalize performance above chance.
+
+    Formula:
+      normalized = (observed - chance) / (1 - chance)
+
+    Meaning:
+      0 = chance-level
+      1 = perfect
+      <0 = worse than chance
+    """
+    return (observed - chance) / (1 - chance)
+
+
+def renormalize_abc(sample):
+    """
+    Renormalize p_A, p_B, p_C over the valid A/B/C answer space.
+
+    The model may assign probability to other tokens.
+    For the causal-choice score, we condition on the valid choices A/B/C.
+
+    Input sample expected:
+      {"p_A": ..., "p_B": ..., "p_C": ...}
+
+    Optional:
+      If the sample already contains "valid_mass", we ignore it and recompute it.
+    """
+    try:
+        raw_a = float(sample["p_A"])
+        raw_b = float(sample["p_B"])
+        raw_c = float(sample["p_C"])
+    except KeyError as e:
+        raise KeyError(f"Sample missing required key {e}: {sample}") from e
+
+    valid_mass = raw_a + raw_b + raw_c
+
+    if valid_mass <= 0:
+        raise ValueError(f"p_A + p_B + p_C must be > 0. Got sample: {sample}")
+
+    return {
+        "p_A": raw_a / valid_mass,
+        "p_B": raw_b / valid_mass,
+        "p_C": raw_c / valid_mass,
+        "valid_mass": valid_mass,
+        "invalid_mass": max(0.0, 1.0 - valid_mass),
+    }
+
+
+def correct_direction_token(relation):
+    """
+    Return the correct direction token for causal relations.
+
+    A = subject causes object
+    B = object causes subject
+    C = no causal relationship
+    """
+    true_direction = relation["true_direction"]
+
+    if true_direction == "subject->object":
+        return "A"
+
+    if true_direction == "object->subject":
+        return "B"
+
+    if true_direction == "none":
+        return None
+
+    raise ValueError(f"Unknown true_direction: {true_direction}")
+
+
+def mean(values):
+    """Compute the arithmetic mean."""
+    if not values:
+        raise ValueError("Cannot compute mean of an empty list.")
+    return sum(values) / len(values)
+
+
+def score_one_relation(relation, raw_samples):
+    """
+    Score one relation using probability mass, not argmax choices.
+
+    Direction score:
+      Only for causal relations.
+      observed = mean probability on the correct direction token.
+
+    Discrimination score:
+      For causal relations:
+        observed = mean probability mass on A+B.
+      For non-causal relations:
+        observed = mean probability mass on C.
+    """
+    relation_id = relation["id"]
+
+    if not raw_samples:
+        raise ValueError(f"No raw response samples for relation {relation_id}")
+
+    samples = [renormalize_abc(sample) for sample in raw_samples]
+
+    is_causal = bool(relation["is_causal"])
+    direction_token = correct_direction_token(relation)
+
+    # Direction: only defined for genuinely causal relations.
+    if is_causal:
+        if direction_token == "A":
+            direction_observed = mean([s["p_A"] for s in samples])
+        elif direction_token == "B":
+            direction_observed = mean([s["p_B"] for s in samples])
+        else:
+            raise ValueError(
+                f"Relation {relation_id} is causal but has no valid direction token."
+            )
+
+        mimicry_direction = normalize_above_chance(
+            direction_observed,
+            DIRECTION_CHANCE,
+        )
+    else:
+        direction_observed = None
+        mimicry_direction = None
+
+    # Discrimination: causal vs non-causal.
+    if is_causal:
+        discrimination_observed = mean([
+            s["p_A"] + s["p_B"]
+            for s in samples
+        ])
+    else:
+        discrimination_observed = mean([
+            s["p_C"]
+            for s in samples
+        ])
+
+    mimicry_discrimination = normalize_above_chance(
+        discrimination_observed,
+        DISCRIMINATION_CHANCE,
+    )
+
+    # Optional composite. Keep sub-scores visible in analysis.
+    if mimicry_direction is None:
+        mimicry_score = mimicry_discrimination
+    else:
+        mimicry_score = (mimicry_direction + mimicry_discrimination) / 2
+
+    return {
+        "mimicry_score": mimicry_score,
+        "mimicry_direction": mimicry_direction,
+        "mimicry_discrimination": mimicry_discrimination,
+        "direction_observed": direction_observed,
+        "discrimination_observed": discrimination_observed,
+        "mean_valid_mass": mean([s["valid_mass"] for s in samples]),
+        "mean_invalid_mass": mean([s["invalid_mass"] for s in samples]),
+        "n_samples": len(samples),
+    }
+
+
+def score_mimicry(
+    raw_responses_path="elicitation/raw_responses.json",
+    relations_path="relations/relations.json",
+    output_path="mimicry/mimicry_scores.json",
+):
+    """
+    Turn raw elicited A/B/C probabilities into per-relation mimicry scores.
+    """
+    relations = load_relations(relations_path)
+    raw_responses = load_json(raw_responses_path)
+
+    scores = {}
+
+    for relation in relations:
+        relation_id = relation["id"]
+
+        if relation_id not in raw_responses:
+            raise KeyError(f"Missing raw responses for relation id: {relation_id}")
+
+        scores[relation_id] = score_one_relation(
+            relation=relation,
+            raw_samples=raw_responses[relation_id],
+        )
+
+    save_json(scores, output_path)
+    print(f"Wrote mimicry scores for {len(scores)} relations to {output_path}")
+
+    return scores
 
 
 if __name__ == "__main__":
-    # score_mimicry("elicitation/raw_responses.json", "relations/relations.json")
-    pass
+    score_mimicry()
