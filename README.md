@@ -32,8 +32,7 @@ This pilot probes that boundary in **base** models and finds a **representation�
 - **The internal structure does not always reach the output.** Mistral-Small-24B separates causal from
   spurious relations almost perfectly in hidden space (held-out AUC ≈ 1.0) while *behaviourally*
   over-endorsing spurious causal-form completions.
-- **The behavioural dose effect is largely lexical.** A graded "more cause" signal tracks co-occurrence,
-  which is *why* the interesting evidence lives in the representation, not the output.
+- **The behavioural dose effect survives modifier-frequency residualisation and sentence-naturalness controls in the clean cases.**
 
 > This is **causal mimicry**, not Pearlian causal inference — and the claim is deliberately that narrow.
 > See the 3-page [research brief](docs/research_brief.docx) for the write-up.
