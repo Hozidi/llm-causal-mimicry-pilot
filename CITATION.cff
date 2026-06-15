@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite it as below."
+title: "Causal Mimicry in Base LLMs: Direction, Dose, and Representation–Output Alignment"
+authors:
+  - family-names: Zidi
+    given-names: Hocine
+type: software
+year: 2026
+url: "https://github.com/Hozidi/llm-causal-mimicry-pilot"
+keywords:
+  - large language models
+  - mechanistic interpretability
+  - causal representation
+  - probing
+  - base models

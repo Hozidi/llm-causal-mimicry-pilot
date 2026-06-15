@@ -1,8 +1,15 @@
-torch
-transformers
-numpy
-scipy
-pandas
-statsmodels
-pingouin
-matplotlib
+# Python 3.10+
+# Core model + tensor stack
+torch>=2.1
+transformers>=4.44
+accelerate>=0.33
+bitsandbytes>=0.43        # 4-bit NF4 loading for >=24B models (CUDA only)
+# Scoring, stats, probes
+numpy>=1.24
+scipy>=1.11
+scikit-learn>=1.3
+pandas>=2.0
+wordfreq>=3.1             # unigram Zipf frequency control (Stage 3A)
+# Plotting
+matplotlib>=3.7
+seaborn>=0.13

@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "causal-mimicry"
+version = "0.1.0"
+description = "Do base LLMs encode causal direction and cause-intensity, distinct from co-occurrence — and do they use it?"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Hocine Zidi" }]
+keywords = ["llm", "mechanistic-interpretability", "causal-representation", "probing", "base-models"]
+
+dependencies = [
+    "torch>=2.1",
+    "transformers>=4.44",
+    "accelerate>=0.33",
+    "bitsandbytes>=0.43; platform_system == 'Linux'",
+    "numpy>=1.24",
+    "scipy>=1.11",
+    "scikit-learn>=1.3",
+    "pandas>=2.0",
+    "wordfreq>=3.1",
+    "matplotlib>=3.7",
+    "seaborn>=0.13",
+]
+
+[project.urls]
+Repository = "https://github.com/Hozidi/llm-causal-mimicry-pilot"
+
+[project.scripts]
+causal-mimicry-run = "scripts.run_model:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
