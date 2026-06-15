@@ -141,7 +141,7 @@ the package is for scripted / reproducible runs.
 
 ```python
 !git clone https://github.com/Hozidi/llm-causal-mimicry-pilot.git
-!cp llm-causal-mimicry-pilot/data/causal_400.json        /content/causal_400.json
+!cp llm-causal-mimicry-pilot/data/causal_400.json/content/causal_400.json
 !cp llm-causal-mimicry-pilot/data/spurious_forks_300.json /content/spurious_forks_300.json
 ```
 
