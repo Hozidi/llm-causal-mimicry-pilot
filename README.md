@@ -35,7 +35,7 @@ This pilot probes that boundary in **base** models and finds a **representationâ
 - **The behavioural dose effect survives modifier-frequency residualisation and sentence-naturalness controls in the clean cases.**
 
 > This is **causal mimicry**, not Pearlian causal inference â€” and the claim is deliberately that narrow.
-> See the 3-page [research brief](docs/research_brief.docx) for the write-up.
+> See the 5-page [research brief](docs/research_brief.docx) for the write-up.
 
 ---
 
