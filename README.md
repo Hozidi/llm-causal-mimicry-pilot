@@ -205,8 +205,7 @@ naming convention and a one-liner to sync a Drive folder into `results/`.
 - **Interventions are diagnostics.** Steering shows only partial effect and cause-token patching does not
   isolate a clean token-local mechanism — consistent with a *distributed* dose signal, but causal
   sufficiency is **not** established.
-- **Behavioural dose is co-occurrence-confounded** (Stage 3B). That's the point: it's what motivates the
-  move to representations and interventions.
+- **Behavioural dose effects survive lexical controls.** After residualising p(correct) against modifier frequency, the relation-specific pattern sharpens: causal confidence rises toward high-intensity causes, while anti-causal relations remain negative and spurious relations return close to zero.
 
 ---
 
